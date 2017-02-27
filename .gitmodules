@@ -7,3 +7,6 @@
 [submodule "deps/cargo"]
 	path = deps/cargo
 	url = http://github.com/funlibs/cargo.git
+[submodule "deps/libtask"]
+	path = deps/libtask
+	url = http://github.com/ssbx/libtask.git

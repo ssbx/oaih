@@ -10,3 +10,4 @@ include_directories(
     ${DEPS_INCLUDES})
 
 add_executable(oaih oaih.c)
+target_link_libraries(oaih ${DEPS_LIBRARIES})
