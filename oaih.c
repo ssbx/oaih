@@ -5,7 +5,6 @@
  * Created on 27 février 2017, 16:58
  */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,11 +14,15 @@
 #include <ssock.h>
 
 #define REQUEST_MAX 1000
+#define FORM_MAX 1000
 #define PAYLOAD_MAX 100000
 
 void
 printUsageAndExit() {
-    printf("Usage: oaih --url=\"http://www.example.com/bla\"");
+    printf("Usage example: oaih --host=\"www.example.com\" --port=\"80\" --location=\"/somewere/request\"");
+    printf("\n\nOptions:\n");
+    printf("\t--verb   Default to \"ListRecords\"\n");
+    printf("\t--metadataPrefix   Default to \"oai_dc\"\n");
     exit(EXIT_FAILURE);
 }
 
@@ -28,45 +31,54 @@ printUsageAndExit() {
  */
 int
 main(int argc, char** argv) {
-    int fd, count;
-    char payload[PAYLOAD_MAX + 1], request[REQUEST_MAX + 1];
+    int socket;
+    char payload[PAYLOAD_MAX + 1], request[REQUEST_MAX + 1], form[FORM_MAX + 1];
+    char *location, *host, *port, *verb, *metaprefix;
+    char form_tpl[] = "?verb=%s;metadataPrefix=%s";
     char request_tpl[] =
-            "GET %s HTTP/1.0\r\n"
+            "GET %s%s HTTP/1.0\r\n"
             "Host: %s\r\n\r\n";
-    char* url, location, host, port;
 
-    url = cargoFlag("url", NULL, argc, argv);
-    if (url == NULL) {
-        printUsageAndExit();
-    }
-    location = parseurl(url, LOCATION_TYPE);
-    if (location == NULL) {
-        printUsageAndExit();
-    }
-    host = parseurl(url, HOST_TYPE);
+
+    host = cargoFlag("hostname", NULL, argc, argv);
     if (host == NULL) {
         printUsageAndExit();
     }
-    port = parseurl(url, PORT_TYPE);
+
+    location = cargoFlag("location", NULL, argc, argv);
+    if (location == NULL) {
+        printUsageAndExit();
+    }
+
+    port = cargoFlag("port", NULL, argc, argv);
     if (port == NULL) {
         printUsageAndExit();
     }
+    verb = cargoFlag("verb", "ListRecords", argc, argv);
+    metaprefix = cargoFlag("metadataPrefix", "oai_dc", argc, argv);
 
-    if (sprintf(request, (size_t) REQUEST_MAX, request_tpl, host, location) < 0) {
+    if (snprintf(form, FORM_MAX, form_tpl, verb, metaprefix) < 0) {
         printUsageAndExit();
     }
 
-    if ((fd = netdial(TCP, *host, atoi(port))) < 0) {
+    if (snprintf(request, REQUEST_MAX, request_tpl, location, form, host) < 0) {
         printUsageAndExit();
     }
 
+    if ((socket = netdial(TCP, host, atoi(port))) < 0) {
+        printUsageAndExit();
+    }
+
+    printf("request: %s\n", request);
     // write http request
-    if (write(fd, request, strlen(request)) >= 0) {
+    if (write(socket, request, strlen(request)) >= 0) {
         // Read reply
-        while ((count = read(fd, payload, PAYLOAD_MAX)) > 0) {
+        while (read(socket, payload, PAYLOAD_MAX) > 0) {
             printf("%s", payload);
         }
     }
+
+    closesocket(socket);
 
     return (EXIT_SUCCESS);
 }
