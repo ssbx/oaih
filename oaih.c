@@ -14,11 +14,14 @@
 #include <cargo.h>
 #include <ssock.h>
 
-char HTTP_GET[] =
-        "GET / HTTP/1.0\r\n"
-        "Host: www.example.com\r\n\r\n";
-
+#define REQUEST_MAX 1000
 #define PAYLOAD_MAX 100000
+
+void
+printUsageAndExit() {
+    printf("Usage: oaih --url=\"http://www.example.com/bla\"");
+    exit(EXIT_FAILURE);
+}
 
 /*
  *
@@ -26,14 +29,40 @@ char HTTP_GET[] =
 int
 main(int argc, char** argv) {
     int fd, count;
-    char payload[PAYLOAD_MAX + 1];
+    char payload[PAYLOAD_MAX + 1], request[REQUEST_MAX + 1];
+    char request_tpl[] =
+            "GET %s HTTP/1.0\r\n"
+            "Host: %s\r\n\r\n";
+    char* url, location, host, port;
 
-    if ((fd = netdial(TCP, "www.example.com", 80)) < 0) {
-        return (EXIT_FAILURE);
+    url = cargoFlag("url", NULL, argc, argv);
+    if (url == NULL) {
+        printUsageAndExit();
+    }
+    location = parseurl(url, LOCATION_TYPE);
+    if (location == NULL) {
+        printUsageAndExit();
+    }
+    host = parseurl(url, HOST_TYPE);
+    if (host == NULL) {
+        printUsageAndExit();
+    }
+    port = parseurl(url, PORT_TYPE);
+    if (port == NULL) {
+        printUsageAndExit();
     }
 
+    if (sprintf(request, (size_t) REQUEST_MAX, request_tpl, host, location) < 0) {
+        printUsageAndExit();
+    }
 
-    if (write(fd, HTTP_GET, strlen(HTTP_GET)) >= 0) {
+    if ((fd = netdial(TCP, *host, atoi(port))) < 0) {
+        printUsageAndExit();
+    }
+
+    // write http request
+    if (write(fd, request, strlen(request)) >= 0) {
+        // Read reply
         while ((count = read(fd, payload, PAYLOAD_MAX)) > 0) {
             printf("%s", payload);
         }
@@ -41,4 +70,3 @@ main(int argc, char** argv) {
 
     return (EXIT_SUCCESS);
 }
-
