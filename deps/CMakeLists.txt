@@ -10,6 +10,11 @@ set(DEPS_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/clog/")
 set(DEPS_INCLUDES ${DEPS_INCLUDES} "${CMAKE_CURRENT_SOURCE_DIR}/cargo/")
 
 #
+# SSOCK is header only
+#
+set(DEPS_INCLUDES ${DEPS_INCLUDES} "${CMAKE_CURRENT_SOURCE_DIR}/ssock/")
+
+#
 # xmlc
 #
 add_subdirectory(xmlc)
