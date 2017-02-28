@@ -1,6 +1,3 @@
-[submodule "deps/xmlc"]
-	path = deps/xmlc
-	url = http://github.com/funlibs/xmlc.git
 [submodule "deps/clog"]
 	path = deps/clog
 	url = http://github.com/funlibs/clog.git

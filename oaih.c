@@ -8,7 +8,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <xml.h>
 #include <clog.h>
 #include <cargo.h>
 #include <ssock.h>
