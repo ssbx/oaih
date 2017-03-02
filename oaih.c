@@ -10,7 +10,7 @@
 #include <string.h>
 #include <clog.h>
 #include <cargo.h>
-#include <ssock.h>
+#include <net.h>
 
 #define REQUEST_MAX 1000
 #define FORM_MAX 1000
@@ -30,7 +30,7 @@ printUsageAndExit() {
  */
 int
 main(int argc, char** argv) {
-    int socket;
+    netsocket socket;
     char payload[PAYLOAD_MAX + 1], request[REQUEST_MAX + 1], form[FORM_MAX + 1];
     char *location, *host, *port, *verb, *metaprefix;
     char form_tpl[] = "?verb=%s;metadataPrefix=%s";
@@ -39,45 +39,53 @@ main(int argc, char** argv) {
             "Host: %s\r\n\r\n";
 
 
-    host = cargoFlag("hostname", NULL, argc, argv);
+    host = cargoFlag("host", NULL, argc, argv);
     if (host == NULL) {
+        printf("missing hostname\n");
         printUsageAndExit();
     }
 
     location = cargoFlag("location", NULL, argc, argv);
     if (location == NULL) {
+        printf("missing location\n");
         printUsageAndExit();
     }
 
     port = cargoFlag("port", NULL, argc, argv);
     if (port == NULL) {
+        printf("missing port\n");
         printUsageAndExit();
     }
     verb = cargoFlag("verb", "ListRecords", argc, argv);
     metaprefix = cargoFlag("metadataPrefix", "oai_dc", argc, argv);
 
     if (snprintf(form, FORM_MAX, form_tpl, verb, metaprefix) < 0) {
+        printf("wrong form\n");
         printUsageAndExit();
     }
 
     if (snprintf(request, REQUEST_MAX, request_tpl, location, form, host) < 0) {
+        printf("wrong request\n");
         printUsageAndExit();
     }
 
-    if ((socket = netdial(TCP, host, atoi(port))) < 0) {
+    socket = netdial(NET_TCP, host, atoi(port));
+    if (socket.fd < 0) {
+        printf("error socket %i",socket.status);
+        closenetsocket(socket);
         printUsageAndExit();
     }
 
     printf("request: %s\n", request);
     // write http request
-    if (write(socket, request, strlen(request)) >= 0) {
+    if (netwrite(socket, request, strlen(request)) >= 0) {
         // Read reply
-        while (read(socket, payload, PAYLOAD_MAX) > 0) {
+        while (netread(socket, payload, PAYLOAD_MAX) > 0) {
             printf("%s", payload);
         }
     }
 
-    closesocket(socket);
+    closenetsocket(socket);
 
     return (EXIT_SUCCESS);
 }
